@@ -30,19 +30,17 @@ void process_network() {
 	// 让kcpuv处理一下内部事务
 	kcpuv_run(kcpuv);
 
+	kcpuv_msg_t msg;
 	while (true) {
-		kcpuv_msg_t msg;
-		while (true) {
-			// 接收消息
-			int r = kcpuv_recv(kcpuv, &msg);
-			if (r < 0) break;
+		// 接收消息
+		int r = kcpuv_recv(kcpuv, &msg);
+		if (r < 0) break;
 
-			// 处理消息
-			// ...
+		// 处理消息
+		// ...
 
-			// 销毁消息
-			kcpuv_msg_free(&msg);
-		}
+		// 销毁消息
+		kcpuv_msg_free(&msg);
 	}
 }
 ```
