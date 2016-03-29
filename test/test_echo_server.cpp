@@ -1,22 +1,57 @@
-#include <Windows.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <unistd.h>
 #include <inttypes.h>
+
+#include "kcpuv.h"
+
+#ifdef PLATFORM_WINDOWS
+#include <Windows.h>
 #ifdef _DEBUG
 #include <crtdbg.h>
 #endif
-#include "kcpuv.h"
+#endif
+
+static uint64_t get_tick_us() {
+#if defined(PLATFORM_WINDOWS)
+	FILETIME ft;
+	ULARGE_INTEGER li;
+	GetSystemTimeAsFileTime(&ft);
+	li.LowPart  = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
+	return li.QuadPart / 10;
+#elif defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (uint64_t)((uint64_t) tv.tv_sec * 1000000 + (uint64_t) tv.tv_usec);
+#endif
+}
+
+static uint64_t get_tick_ms() {
+	return get_tick_us() / 1000;
+}
+
+static void sleep_ms(uint64_t ms) {
+#if defined(PLATFORM_WINDOWS)
+	Sleep((DWORD)ms);
+#elif defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)
+	usleep(ms * 1000);
+#endif
+}
 
 int main() {
-#ifdef _DEBUG
+#if defined(PLATFORM_WINDOWS) && defined(_DEBUG)
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	//_CrtSetBreakAlloc(100);
+	//_CrtSetBreakAlloc(216);
 #endif
 
 	kcpuv_t kcpuv = kcpuv_create();
 	kcpuv_listen(kcpuv, "0.0.0.0", 9527);
-	uint64_t t = GetTickCount();
-	while (GetTickCount() - t < 15000) {
+	uint64_t t = get_tick_ms();
+	while (get_tick_ms() - t < 15000) {
 		kcpuv_run(kcpuv);
 
 		kcpuv_msg_t msg;
@@ -31,7 +66,7 @@ int main() {
 			kcpuv_send(kcpuv, msg.conv, buf, strlen(buf));
 			kcpuv_msg_free(&msg);
 		}
-		Sleep(1);
+		sleep_ms(1);
 	}
 	kcpuv_destroy(kcpuv);
 	return 0;

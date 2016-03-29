@@ -14,11 +14,12 @@ static void on_network_recv_udp(
     const struct sockaddr* addr,
     unsigned flags) {
 
+	Network* server;
 	if (nread <= 0) {
 		goto Exit0;
 	}
 
-	Network* server = (Network*)(handle->data);
+	server = (Network*)(handle->data);
 	server->on_recv_udp(rcvbuf->base, nread, addr);
 
 Exit0:
@@ -32,11 +33,12 @@ static void on_conn_recv_udp(
     const struct sockaddr* addr,
     unsigned flags) {
 
+	Conn* conn;
 	if (nread <= 0) {
 		goto Exit0;
 	}
 
-	Conn* conn = (Conn*)(handle->data);
+	conn = (Conn*)(handle->data);
 	conn->on_recv_udp(rcvbuf->base, nread, addr);
 
 Exit0:

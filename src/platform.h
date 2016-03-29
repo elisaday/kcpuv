@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(linux) || defined(__linux) || defined(__linux__) || defined(__GNUC__)
+#if defined(linux) || defined(__linux) || defined(__linux__)
 # ifndef PLATFORM_LINUX
 #   define PLATFORM_LINUX
 # endif
