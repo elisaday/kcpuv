@@ -56,6 +56,12 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h>
+
+#if defined(PLATFORM_LINUX)
+# ifndef __STDC_FORMAT_MACROS
+#  define __STDC_FORMAT_MACROS
+# endif
+#endif
 #include <inttypes.h>
 
 #ifdef __cplusplus

@@ -3,9 +3,13 @@ cmake_minimum_required(VERSION 2.6)
 if (MSVC)
   link_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/x64/)
-else ()
+elseif (APPLE)
   link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/macos_x64_i386/
+  )
+elseif (UNIX)
+  link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/linux_x64/
   )
 endif ()
 

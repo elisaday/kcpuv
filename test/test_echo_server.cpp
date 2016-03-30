@@ -2,19 +2,26 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
-
-#ifdef PLATFORM_MACOS
-#include <sys/time.h>
-#include <unistd.h>
-#else defined(PLATFORM_WINDOWS)
-#include <Windows.h>
-#ifdef _DEBUG
-#include <crtdbg.h>
-#endif
-#endif
 
 #include "kcpuv.h"
+
+#if defined(PLATFORM_MACOS) || defined(PLATFORM_LINUX)
+#	include <sys/time.h>
+#	include <unistd.h>
+#elif defined(PLATFORM_WINDOWS)
+#	include <Windows.h>
+#	ifdef _DEBUG
+#		include <crtdbg.h>
+#	endif
+#endif
+
+#if defined(PLATFORM_LINUX)
+#	ifndef __STDC_FORMAT_MACROS
+#		define __STDC_FORMAT_MACROS
+#	endif
+#endif
+
+#include <inttypes.h>
 
 static uint64_t get_tick_us() {
 #if defined(PLATFORM_WINDOWS)
