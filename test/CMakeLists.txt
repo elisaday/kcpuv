@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 2.6)
 
-link_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/macos_x64_i386/
-)
+if (MSVC)
+  link_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/x64/)
+else ()
+  link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/lib/macos_x64_i386/
+  )
+endif ()
 
 add_executable(test_echo_client "test_echo_client.cpp")
 add_executable(test_echo_server "test_echo_server.cpp")
 
 if (MSVC)
-  if (MSVC11)
-    set_target_properties(test_echo_client PROPERTIES LINK_FLAGS "/SAFESEH:NO") 
-    set_target_properties(test_echo_server PROPERTIES LINK_FLAGS "/SAFESEH:NO") 
-  endif ()
-
   if (USING_STATIC_CRT)
     foreach (flag_var
       CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
@@ -35,5 +35,10 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/../inc/
 )
 
-target_link_libraries(test_echo_client uv kcpuv)
-target_link_libraries(test_echo_server uv kcpuv)
+if (MSVC)
+  target_link_libraries(test_echo_client libuv kcpuv)
+  target_link_libraries(test_echo_server libuv kcpuv)
+else ()
+  target_link_libraries(test_echo_client uv kcpuv)
+  target_link_libraries(test_echo_server uv kcpuv)
+endif ()

@@ -2,18 +2,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <inttypes.h>
 
-#include "kcpuv.h"
-
-#ifdef PLATFORM_WINDOWS
+#ifdef PLATFORM_MACOS
+#include <sys/time.h>
+#include <unistd.h>
+#else defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #ifdef _DEBUG
 #include <crtdbg.h>
 #endif
 #endif
+
+#include "kcpuv.h"
 
 static uint64_t get_tick_us() {
 #if defined(PLATFORM_WINDOWS)

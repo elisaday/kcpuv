@@ -17,10 +17,7 @@ add_library(kcpuv STATIC ${SRC})
 if (MSVC)
   set_source_files_properties (header.cpp PROPERTIES COMPILE_FLAGS "/Ycheader.h")
   set_target_properties (kcpuv PROPERTIES COMPILE_FLAGS "/Yuheader.h")
-  
-  if (MSVC11)
-    set_target_properties(kcpuv PROPERTIES LINK_FLAGS "/SAFESEH:NO") 
-  endif ()
+  set_source_files_properties (../kcp/ikcp.c PROPERTIES COMPILE_FLAGS "/Y-")
 
   if (USING_STATIC_CRT)
     foreach (flag_var
