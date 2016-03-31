@@ -39,10 +39,5 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/../inc/
 )
 
-if (MSVC)
-  target_link_libraries(test_echo_client libuv kcpuv)
-  target_link_libraries(test_echo_server libuv kcpuv)
-else ()
-  target_link_libraries(test_echo_client uv kcpuv)
-  target_link_libraries(test_echo_server uv kcpuv)
-endif ()
+target_link_libraries(test_echo_client kcpuv pthread)
+target_link_libraries(test_echo_server kcpuv pthread)

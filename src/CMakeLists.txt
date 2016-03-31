@@ -44,8 +44,13 @@ if (UNIX)
 endif ()
 
 include_directories(
-	${CMAKE_CURRENT_SOURCE_DIR}/../inc/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../inc/
   ${CMAKE_CURRENT_SOURCE_DIR}/../libuv/inc/
   ${CMAKE_CURRENT_SOURCE_DIR}/../kcp/
 )
 
+if (MSVC)
+	target_link_libraries(kcpuv libuv)
+else ()
+	target_link_libraries(kcpuv uv)
+endif ()
