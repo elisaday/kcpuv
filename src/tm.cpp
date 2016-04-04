@@ -20,7 +20,7 @@ uint64_t get_tick_us() {
 #endif
 }
 
-void sleep(uint64_t ms) {
+void sleep_ms(uint64_t ms) {
 #if defined(PLATFORM_WINDOWS)
 	Sleep((DWORD)ms);
 #elif defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)

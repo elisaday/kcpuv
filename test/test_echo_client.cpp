@@ -56,12 +56,11 @@ int main() {
 	//_CrtSetBreakAlloc(216);
 #endif
 
-	kcpuv_conv_t  conv = 0x12345678;
 	kcpuv_t kcpuv = kcpuv_create();
-	kcpuv_connect(kcpuv, conv, "127.0.0.1", 9527);
+	kcpuv_conv_t conv = kcpuv_connect(kcpuv, "127.0.0.1", 9527);
 	uint64_t t = get_tick_ms();
 	uint64_t nextSend = t + 1000;
-	while (get_tick_ms() - t < 15000) {
+	while (get_tick_ms() - t < 15000000) {
 		kcpuv_run(kcpuv);
 
 		kcpuv_msg_t msg;

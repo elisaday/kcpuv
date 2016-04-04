@@ -391,9 +391,9 @@ void ikcp_allocator(void* (*new_malloc)(size_t), void (*new_free)(void*));
 
 // Get conv from a udp packet.
 // you can use this func to find out one packet should bind to which ikcpcb obj.
-// return 1 if get conv success.
-// return 0 if get conv error.
 int ikcp_get_conv(const char *data, long size, IUINT32* conv_out);
+
+int ikcp_set_conv(const char* data, long size, IUINT32 conv);
 
 #ifdef __cplusplus
 }

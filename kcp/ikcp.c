@@ -1259,12 +1259,18 @@ int ikcp_waitsnd(const ikcpcb* kcp) {
 
 
 // get conv from packet
-// return 1 if get conv success.
-// return 0 if get conv error.
 int ikcp_get_conv(const char* data, long size, IUINT32* conv_out) {
-	if (data == NULL || size < (int)IKCP_OVERHEAD)
-		return 0;
+	if (data == NULL || size < sizeof(*conv_out))
+		return -1;
 
 	ikcp_decode32u(data, conv_out);
-	return 1;
+	return 0;
+}
+
+int ikcp_set_conv(const char* data, long size, IUINT32 conv) {
+	if (data == NULL || size < sizeof(conv))
+		return -1;
+
+	ikcp_encode32u(data, conv);
+	return 0;
 }

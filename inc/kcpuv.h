@@ -52,7 +52,7 @@ KCPUV_API kcpuv_t kcpuv_create();
 KCPUV_API void kcpuv_destroy(kcpuv_t kcpuv);
 
 KCPUV_API int kcpuv_listen(kcpuv_t kcpuv, const char* addr, uint32_t port);
-KCPUV_API int kcpuv_connect(kcpuv_t kcpuv, kcpuv_conv_t conv, const char* addr, uint32_t port);
+KCPUV_API kcpuv_conv_t kcpuv_connect(kcpuv_t kcpuv, const char* addr, uint32_t port);
 
 KCPUV_API void kcpuv_run(kcpuv_t kcpuv);
 

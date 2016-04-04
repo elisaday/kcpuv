@@ -1,4 +1,5 @@
 #pragma once
+#include "hand_shake.h"
 
 class Network;
 
@@ -7,21 +8,34 @@ public:
 	Conn(Network* network);
 	~Conn();
 
-	int init(kcpuv_conv_t conv, const sockaddr* addr, uv_udp_t* handle);
+	int init_kcp(kcpuv_conv_t conv);
 	void shutdown();
 
 	int send_kcp(const char* buf, uint32_t len);
 	int recv_kcp(char*& buf, uint32_t& size);
-	int run(uint64_t tick);
 
-public:
-	void on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr);
+	virtual int run(uint64_t tick);
+	virtual void on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr);
+
+	uint32_t status();
+	
 	int send_udp(const char* buf, uint32_t len);
+	void send_ack_conv();
 
-private:
+	kcpuv_conv_t get_conv();
+
+protected:
+	uint32_t new_key();
+	uint32_t new_conv();
+
+protected:
 	Network* _network;
-	kcpuv_conv_t _conv;
 	uv_udp_t* _udp;
 	struct sockaddr _addr;
+	
+	kcpuv_conv_t _conv;
 	ikcpcb* _kcp;
+	uint32_t _key;
+
+	uint32_t _status;
 };

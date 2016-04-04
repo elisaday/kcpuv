@@ -1,13 +1,17 @@
 #include "header.h"
 #include "network.h"
 #include "tm.h"
+#include "rand.h"
+#include "hand_shake.h"
+#include "conn_client.h"
+#include "conn_server.h"
 
 static void on_alloc_buffer(uv_handle_t* handle, size_t size, uv_buf_t* buf) {
 	buf->len = (unsigned long)size;
 	buf->base = new char[size];
 }
 
-static void on_network_recv_udp(
+static void on_recv_udp_server(
     uv_udp_t* handle,
     ssize_t nread,
     const uv_buf_t* rcvbuf,
@@ -26,7 +30,7 @@ Exit0:
 	delete []rcvbuf->base;
 }
 
-static void on_conn_recv_udp(
+static void on_recv_udp_client(
     uv_udp_t* handle,
     ssize_t nread,
     const uv_buf_t* rcvbuf,
@@ -62,6 +66,7 @@ int Network::init() {
 #ifdef PLATFORM_WINDOWS
 	SetErrorMode(0);
 #endif
+	rand_seed((uint32_t)get_tick_ms());
 	return 0;
 }
 
@@ -82,7 +87,7 @@ void Network::run() {
 	uv_run(_loop, UV_RUN_NOWAIT);
 
 	for (std::map<kcpuv_conv_t, Conn*>::iterator it = _map_conn.begin();
-	        it != _map_conn.end(); ++it) {
+	    it != _map_conn.end(); ++it) {
 		Conn* conn = it->second;
 		conn->run(get_tick_ms());
 	}
@@ -101,7 +106,7 @@ int Network::udp_listen(const char* local_addr, int32_t port) {
 	r = uv_udp_bind(&_udp, (const struct sockaddr*)&bind_addr, 0);
 	PROC_ERR(r);
 
-	r = uv_udp_recv_start(&_udp, on_alloc_buffer, on_network_recv_udp);
+	r = uv_udp_recv_start(&_udp, on_alloc_buffer, on_recv_udp_server);
 	PROC_ERR(r);
 
 	log_info("udp listen port: %d", port);
@@ -111,47 +116,84 @@ Exit0:
 	return r;
 }
 
-Conn* Network::kcp_conn(kcpuv_conv_t conv, const char* local_addr, int port) {
+kcpuv_conv_t Network::connect(const char* local_addr, int port) {
 	int r = -1;
-	Conn* conn = NULL;
-
+	uint64_t timeout = get_tick_ms() + 10 * 1000000;
+	ConnClient* conn = NULL;
 	struct sockaddr_in addr;
-	r = uv_ip4_addr(local_addr, port, &addr);
-	PROC_ERR(r);
 
-	conn = new Conn(this);
-	conn->init(conv, (const struct sockaddr*)&addr, &_udp);
+	conn = new ConnClient(this);
 
 	_udp.data = conn;
 	uv_udp_init(_loop, &_udp);
 
-	r = uv_udp_recv_start(&_udp, on_alloc_buffer, on_conn_recv_udp);
+	r = uv_ip4_addr(local_addr, port, &addr);
 	PROC_ERR(r);
 
-	_map_conn[conv] = conn;
-	return conn;
+	r = conn->prepare_req_conn((const struct sockaddr*)&addr, &_udp);
+	PROC_ERR(r);
+
+	r = uv_udp_recv_start(&_udp, on_alloc_buffer, on_recv_udp_client);
+	PROC_ERR(r);
+
+	while (get_tick_ms() < timeout) {
+		conn->req_conn_run();
+
+		uv_run(_loop, UV_RUN_NOWAIT);
+		if (conn->status() == CONV_ESTABLISHED) {
+			_map_conn[conn->get_conv()] = conn;
+			return conn->get_conv();
+		}
+
+		sleep_ms(1);
+	}
 
 Exit0:
 	SAFE_DELETE(conn);
-	return NULL;
+	_udp.data = NULL;
+	return 0;
 }
 
 void Network::on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr) {
+	int r = -1;
 	kcpuv_conv_t conv;
-	int ret = ikcp_get_conv(buf, (long)size, &conv);
-
-	if (ret == 0)
+	r = ikcp_get_conv(buf, (long)size, &conv);
+	PROC_ERR(r);
+	
+	if (conv == CONV_REQ_CONN) {
+		proc_req_conn(buf, (uint32_t)size, addr);
 		return;
+	}
 
 	Conn* conn = get_conn_by_conv(conv);
+	CHK_COND_NOLOG(conn);
 
-	if (!conn) {
-		conn = add_conn(conv, addr);
-	}
+	conn->on_recv_udp(buf, size, addr);
 
-	if (conn) {
-		conn->on_recv_udp(buf, size, addr);
-	}
+Exit0:
+	return;
+}
+
+int Network::proc_req_conn(const char* buf, uint32_t size, const struct sockaddr* addr) {
+	int r = -1;
+	ConnServer* conn = NULL;
+	hs_req_conn_s* req;
+
+	req = (hs_req_conn_s*)buf;
+	CHK_COND_NOLOG(size == sizeof(hs_req_conn_s));
+	CHK_COND_NOLOG(_map_req_conn.find(req->n) == _map_req_conn.end());
+
+	conn = new ConnServer(this);
+	r = conn->prepare_snd_conv(addr, &_udp, req->n);
+	PROC_ERR(r);
+
+	_map_req_conn[req->n] = conn->get_conv();
+	_map_conn[conn->get_conv()] = conn;
+	return 0;
+
+Exit0:
+	SAFE_DELETE(conn);
+	return r;
 }
 
 Conn* Network::get_conn_by_conv(kcpuv_conv_t conv) {
@@ -161,13 +203,6 @@ Conn* Network::get_conn_by_conv(kcpuv_conv_t conv) {
 		return it->second;
 
 	return NULL;
-}
-
-Conn* Network::add_conn(kcpuv_conv_t conv, const sockaddr* addr) {
-	Conn* conn = new Conn(this);
-	conn->init(conv, addr, &_udp);
-	_map_conn[conv] = conn;
-	return conn;
 }
 
 int Network::get_msg(kcpuv_msg_t* msg) {
@@ -208,11 +243,8 @@ int kcpuv_listen(kcpuv_t kcpuv, const char* addr, uint32_t port) {
 	return kcpuv->network.udp_listen(addr, port);
 }
 
-int kcpuv_connect(kcpuv_t kcpuv, kcpuv_conv_t conv, const char* addr, uint32_t port) {
-	Conn* conn = kcpuv->network.kcp_conn(conv, addr, port);
-	if (!conn)
-		return -1;
-	return 0;
+kcpuv_conv_t kcpuv_connect(kcpuv_t kcpuv, const char* addr, uint32_t port) {
+	return kcpuv->network.connect(addr, port);
 }
 
 void kcpuv_run(kcpuv_t kcpuv) {

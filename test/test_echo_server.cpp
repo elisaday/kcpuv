@@ -59,7 +59,7 @@ int main() {
 	kcpuv_t kcpuv = kcpuv_create();
 	kcpuv_listen(kcpuv, "0.0.0.0", 9527);
 	uint64_t t = get_tick_ms();
-	while (get_tick_ms() - t < 15000) {
+	while (get_tick_ms() - t < 15000000) {
 		kcpuv_run(kcpuv);
 
 		kcpuv_msg_t msg;
