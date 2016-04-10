@@ -12,7 +12,7 @@ ConnClient::~ConnClient() {
 }
 
 int ConnClient::run(uint64_t tick) {
-	return 0;
+	return Conn::run(tick);
 }
 
 int ConnClient::prepare_req_conn(const sockaddr* addr, uv_udp_t* handle) {

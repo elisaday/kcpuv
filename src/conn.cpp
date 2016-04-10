@@ -74,6 +74,9 @@ int Conn::recv_kcp(char*& buf, uint32_t& size) {
 		return r;
 	}
 
+	// verify key
+	// ...
+
 	buf = data;
 	size = (uint32_t)len;
 	return 0;
@@ -109,7 +112,7 @@ int Conn::send_kcp(const char* buf, uint32_t len) {
 int Conn::run(uint64_t tick) {
 	ikcp_update(_kcp, (uint32_t)tick);
 
-	int r = -1;
+	int hasKcpMsg = -1;
 	while (true) {
 		char* buf;
 		uint32_t size;
@@ -124,10 +127,10 @@ int Conn::run(uint64_t tick) {
 		msg.size = size;
 		_network->push_msg(msg);
 
-		r = 0;
+		hasKcpMsg = 0;
 	}
 
-	return r;
+	return hasKcpMsg;
 }
 
 uint32_t Conn::status() {

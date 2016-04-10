@@ -157,6 +157,8 @@ Exit0:
 void Network::on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr) {
 	int r = -1;
 	kcpuv_conv_t conv;
+	Conn* conn = NULL;
+
 	r = ikcp_get_conv(buf, (long)size, &conv);
 	PROC_ERR(r);
 	
@@ -165,7 +167,7 @@ void Network::on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* 
 		return;
 	}
 
-	Conn* conn = get_conn_by_conv(conv);
+	conn = get_conn_by_conv(conv);
 	CHK_COND_NOLOG(conn);
 
 	conn->on_recv_udp(buf, size, addr);
