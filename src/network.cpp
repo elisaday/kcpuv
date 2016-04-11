@@ -86,10 +86,20 @@ void Network::shutdown() {
 void Network::run() {
 	uv_run(_loop, UV_RUN_NOWAIT);
 
+	std::vector<kcpuv_conv_t> remove_list;
 	for (std::map<kcpuv_conv_t, Conn*>::iterator it = _map_conn.begin();
 	    it != _map_conn.end(); ++it) {
 		Conn* conn = it->second;
-		conn->run(get_tick_ms());
+		if (conn->expired()) {
+			remove_list.push_back(conn->get_conv());
+		} else {
+			conn->run(get_tick_ms());
+		}
+	}
+
+	for (std::vector<kcpuv_conv_t>::iterator it = remove_list.begin();
+		it != remove_list.end(); ++it) {
+		_map_conn.erase(*it);
 	}
 }
 

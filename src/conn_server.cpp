@@ -12,17 +12,10 @@ ConnServer::~ConnServer() {
 
 }
 
-int ConnServer::expired() {
-	return get_tick_ms() > _conv_expired_tick ? 0 : -1;
-}
-
 int ConnServer::run(uint64_t tick) {
-	if (expired() == 0)
-		return -1;
-
-	int r = Conn::run(tick);
+	int msg_cnt = Conn::run(tick);
 	if (_status == CONV_SND_CONV) {
-		if (r == 0) {
+		if (msg_cnt > 0) {
 			_status = CONV_ESTABLISHED;
 		} else {
 			snd_conn_run();
@@ -38,8 +31,6 @@ int ConnServer::prepare_snd_conv(const sockaddr* addr, uv_udp_t* handle, uint32_
 	_udp = handle;
 	_n = n;
 	_conv = new_conv();
-
-	_conv_expired_tick = get_tick_ms() + 1000 * 100000;
 
 	_next_snd_conv_tick = 0;
 

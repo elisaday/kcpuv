@@ -4,6 +4,8 @@
 #include "rand.h"
 #include "tm.h"
 
+static const uint64_t CONN_EXPIRED_TIMEOUT = 30 * 1000;
+
 struct send_req_s {
 	uv_udp_send_t req;
 	uv_buf_t buf;
@@ -60,31 +62,43 @@ void Conn::on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* add
 }
 
 int Conn::recv_kcp(char*& buf, uint32_t& size) {
+	int r = -1;
+	char* data = NULL;
+
 	int len = ikcp_peeksize(_kcp);
+	CHK_COND_NOLOG(len > 0);
 
-	if (len < 0) {
-		return -1;
-	}
-
-	char* data = new char[len];
-	int r = ikcp_recv(_kcp, data, len);
-
-	if (r < 0) {
-		delete[]data;
-		return r;
-	}
+	data = new char[len];
+	r = ikcp_recv(_kcp, data, len);
+	PROC_ERR(r);
 
 	// verify key
-	// ...
+	CHK_COND_NOLOG(len >= sizeof(kcpuv_pack_header_s));
+	kcpuv_pack_header_s* header = (kcpuv_pack_header_s*)data;
+	CHK_COND_NOLOG(header->key == _key);
 
 	buf = data;
 	size = (uint32_t)len;
+
+	if (len == sizeof(kcpuv_pack_header_s)) {
+		hs_ack_conv_s ack;
+		ack.header.key = _key;
+		r = send_kcp((const char*)&ack, sizeof(ack));
+		PROC_ERR(r);
+	}
+
 	return 0;
+
+Exit0:
+	SAFE_DELETE_ARRAY(data);
+	return r;
 }
 
 int Conn::send_udp(const char* buf, uint32_t len) {
 	int r = -1;
-	send_req_s* req = new send_req_s;
+	send_req_s* req = NULL;
+	
+	req = new send_req_s;
 	CHK_COND(req);
 
 	req->buf.base = new char[len];
@@ -93,15 +107,15 @@ int Conn::send_udp(const char* buf, uint32_t len) {
 	memcpy(req->buf.base, buf, len);
 
 	r = uv_udp_send((uv_udp_send_t*)req, _udp, &req->buf, 1, &_addr, on_send_done);
-
-	if (r < 0) {
-		SAFE_DELETE_ARRAY(req->buf.base);
-		SAFE_DELETE(req);
-		return -1;
-	}
+	PROC_ERR(r);
 
 	return 0;
 Exit0:
+	if (req) {
+		SAFE_DELETE_ARRAY(req->buf.base);
+	}
+
+	SAFE_DELETE(req);
 	return r;
 }
 
@@ -109,16 +123,20 @@ int Conn::send_kcp(const char* buf, uint32_t len) {
 	return ikcp_send(_kcp, buf, len);
 }
 
+int Conn::expired() {
+	return get_tick_ms() > _conv_expired_tick ? 0 : -1;
+}
+
 int Conn::run(uint64_t tick) {
 	ikcp_update(_kcp, (uint32_t)tick);
 
-	int hasKcpMsg = -1;
+	int msg_cnt = 0;
 	while (true) {
 		char* buf;
 		uint32_t size;
 
 		int r = recv_kcp(buf, size);
-		if (r != 0)
+		if (r < 0)
 			break;
 
 		kcpuv_msg_t msg;
@@ -127,10 +145,14 @@ int Conn::run(uint64_t tick) {
 		msg.size = size;
 		_network->push_msg(msg);
 
-		hasKcpMsg = 0;
+		msg_cnt++;
 	}
 
-	return hasKcpMsg;
+	if (msg_cnt > 0) {
+		_conv_expired_tick = get_tick_ms() + CONN_EXPIRED_TIMEOUT;
+	}
+
+	return msg_cnt;
 }
 
 uint32_t Conn::status() {

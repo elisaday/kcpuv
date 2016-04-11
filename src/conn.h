@@ -24,6 +24,8 @@ public:
 
 	kcpuv_conv_t get_conv();
 
+	int expired();
+
 protected:
 	uint32_t new_key();
 	uint32_t new_conv();
@@ -38,4 +40,6 @@ protected:
 	uint32_t _key;
 
 	uint32_t _status;
+
+	uint64_t _conv_expired_tick;
 };
