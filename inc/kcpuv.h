@@ -61,6 +61,8 @@ KCPUV_API int kcpuv_send(kcpuv_t kcpuv, kcpuv_conv_t conv, const void* data, uin
 
 KCPUV_API void kcpuv_msg_free(kcpuv_msg_t* msg);
 
+KCPUV_API int kcpuv_conv_valid(kcpuv_t kcpuv, kcpuv_conv_t conv);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

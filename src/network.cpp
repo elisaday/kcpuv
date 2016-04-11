@@ -279,3 +279,8 @@ int kcpuv_send(kcpuv_t kcpuv, kcpuv_conv_t conv, const void* data, uint32_t size
 void kcpuv_msg_free(kcpuv_msg_t* msg) {
 	SAFE_DELETE_ARRAY(msg->data);
 }
+
+int kcpuv_conv_valid(kcpuv_t kcpuv, kcpuv_conv_t conv) {
+	Conn* conn = kcpuv->network.get_conn_by_conv(conv);
+	return conn != NULL ? 0 : -1;
+}
