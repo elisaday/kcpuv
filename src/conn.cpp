@@ -68,6 +68,7 @@ void Conn::on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* add
 int Conn::recv_kcp(char*& buf, uint32_t& size) {
 	int r = -1;
 	char* data = NULL;
+	kcpuv_pack_header_s* header = NULL;
 
 	int len = ikcp_peeksize(_kcp);
 	CHK_COND_NOLOG(len > 0);
@@ -78,7 +79,7 @@ int Conn::recv_kcp(char*& buf, uint32_t& size) {
 
 	// verify key
 	CHK_COND_NOLOG(len >= sizeof(kcpuv_pack_header_s));
-	kcpuv_pack_header_s* header = (kcpuv_pack_header_s*)data;
+	header = (kcpuv_pack_header_s*)data;
 	CHK_COND_NOLOG(header->key == _key);
 
 	size = (uint32_t)len - sizeof(kcpuv_pack_header_s);
