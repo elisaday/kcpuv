@@ -7,6 +7,7 @@ public:
 	~ConnServer();
 
 	virtual int run(uint64_t tick);
+	virtual int recv_kcp(char*& buf, uint32_t& size);
 
 	int prepare_snd_conv(const sockaddr* addr, uv_udp_t* handle, uint32_t n);
 	void snd_conn_run();

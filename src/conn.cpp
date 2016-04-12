@@ -5,6 +5,7 @@
 #include "tm.h"
 
 static const uint64_t CONN_EXPIRED_TIMEOUT = 30 * 1000;
+static const uint32_t MAX_SEND_KCP_SIZE = 64 * 1024;
 
 struct send_req_s {
 	uv_udp_send_t req;
@@ -24,9 +25,12 @@ static void on_send_done(uv_udp_send_t* req, int status) {
 
 Conn::Conn(Network* network) {
 	_network = network;
-	_conv = 0;
 	_udp = NULL;
+	_conv = 0;
 	_kcp = NULL;
+	_key = 0;
+	_status = CONV_INVALID;
+	_conv_expired_tick = 0;
 }
 
 Conn::~Conn() {
@@ -77,18 +81,15 @@ int Conn::recv_kcp(char*& buf, uint32_t& size) {
 	kcpuv_pack_header_s* header = (kcpuv_pack_header_s*)data;
 	CHK_COND_NOLOG(header->key == _key);
 
-	buf = data;
-	size = (uint32_t)len;
-
-	if (len == sizeof(kcpuv_pack_header_s)) {
-		hs_ack_conv_s ack;
-		ack.header.key = _key;
-		r = send_kcp((const char*)&ack, sizeof(ack));
-		PROC_ERR(r);
+	size = (uint32_t)len - sizeof(kcpuv_pack_header_s);
+	if (size > 0) {
+		buf = new char[size];
+		memcpy(buf, data + sizeof(kcpuv_pack_header_s), size);
+	} else {
+		buf = NULL;
 	}
 
-	return 0;
-
+	r = 0;
 Exit0:
 	SAFE_DELETE_ARRAY(data);
 	return r;
@@ -119,12 +120,28 @@ Exit0:
 	return r;
 }
 
-int Conn::send_kcp(const char* buf, uint32_t len) {
+int Conn::send_kcp_raw(const char* buf, uint32_t len) {
 	return ikcp_send(_kcp, buf, len);
+}
+
+int Conn::send_kcp(const char* buf, uint32_t len) {
+	if (len > MAX_SEND_KCP_SIZE - sizeof(kcpuv_pack_header_s))
+		return -1;
+
+	static char tmp[MAX_SEND_KCP_SIZE];
+	kcpuv_pack_header_s header;
+	header.key = _key;
+	memcpy(tmp, &header, sizeof(header));
+	memcpy(tmp + sizeof(header), buf, len);
+	return ikcp_send(_kcp, tmp, len + sizeof(header));
 }
 
 int Conn::expired() {
 	return get_tick_ms() > _conv_expired_tick ? 0 : -1;
+}
+
+void Conn::alive() {
+	_conv_expired_tick = get_tick_ms() + CONN_EXPIRED_TIMEOUT;
 }
 
 int Conn::run(uint64_t tick) {
@@ -136,20 +153,21 @@ int Conn::run(uint64_t tick) {
 		uint32_t size;
 
 		int r = recv_kcp(buf, size);
-		if (r < 0)
+		if (r < 0) {
 			break;
-
-		kcpuv_msg_t msg;
-		msg.conv = _conv;
-		msg.data = (uint8_t*)buf;
-		msg.size = size;
-		_network->push_msg(msg);
+		} else if (r == 0) {
+			kcpuv_msg_t msg;
+			msg.conv = _conv;
+			msg.data = (uint8_t*)buf;
+			msg.size = size;
+			_network->push_msg(msg);
+		}
 
 		msg_cnt++;
 	}
 
 	if (msg_cnt > 0) {
-		_conv_expired_tick = get_tick_ms() + CONN_EXPIRED_TIMEOUT;
+		alive();
 	}
 
 	return msg_cnt;

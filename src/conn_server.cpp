@@ -5,7 +5,8 @@
 
 ConnServer::ConnServer(Network* network) 
 	: Conn(network) {
-
+	_n = 0;
+	_next_snd_conv_tick = 0;
 }
 
 ConnServer::~ConnServer() {
@@ -39,6 +40,7 @@ int ConnServer::prepare_snd_conv(const sockaddr* addr, uv_udp_t* handle, uint32_
 	_snd_conv.new_conv = _conv;
 	_snd_conv.key = new_key();
 
+	_key = _snd_conv.key;
 	_status = CONV_SND_CONV;
 	return init_kcp(_conv);
 }
@@ -53,3 +55,13 @@ void ConnServer::snd_conn_run() {
 	}
 }
 
+int ConnServer::recv_kcp(char*& buf, uint32_t& size) {
+	int r = Conn::recv_kcp(buf, size);
+	if (r == 0 && size == 0 && buf == NULL) {
+		hs_ack_conv_s ack;
+		ack.header.key = _key;
+		send_kcp_raw((const char*)&ack, sizeof(ack));
+		return 1;
+	}
+	return r;
+}

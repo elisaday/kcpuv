@@ -12,7 +12,8 @@ public:
 	void shutdown();
 
 	int send_kcp(const char* buf, uint32_t len);
-	int recv_kcp(char*& buf, uint32_t& size);
+
+	virtual int recv_kcp(char*& buf, uint32_t& size);
 
 	virtual int run(uint64_t tick);
 	virtual void on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr);
@@ -25,10 +26,13 @@ public:
 	kcpuv_conv_t get_conv();
 
 	int expired();
+	void alive();
 
 protected:
 	uint32_t new_key();
 	uint32_t new_conv();
+
+	int send_kcp_raw(const char* buf, uint32_t len);
 
 protected:
 	Network* _network;

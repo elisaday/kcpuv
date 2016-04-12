@@ -1,5 +1,6 @@
 #pragma once
 
+const uint32_t CONV_INVALID = 0;
 const uint32_t CONV_REQ_CONN = 1;
 const uint32_t CONV_SND_CONV = 2;
 const uint32_t CONV_ACK_CONV = 3;

@@ -5,6 +5,9 @@
 
 ConnClient::ConnClient(Network* network) 
 	: Conn(network) {
+	_next_ping_tick = 0;
+	_req_conn_times = 0;
+	_next_req_conn_tick = 0;
 }
 
 ConnClient::~ConnClient() {
@@ -72,10 +75,19 @@ void ConnClient::on_recv_udp_snd_conv(const char* buf, ssize_t size) {
 
 	hs_ack_conv_s ack;
 	ack.header.key = _key;
-	r = send_kcp((const char*)&ack, sizeof(ack));
+	r = send_kcp_raw((const char*)&ack, sizeof(ack));
 	PROC_ERR(r);
 
 	_status = CONV_ESTABLISHED;
+	alive();
 Exit0:
 	return;
+}
+
+int ConnClient::recv_kcp(char*& buf, uint32_t& size) {
+	int r = Conn::recv_kcp(buf, size);
+	if (r == 0 && size == 0 && buf == NULL) {
+		return 1;
+	}
+	return r;
 }

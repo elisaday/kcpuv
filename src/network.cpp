@@ -90,8 +90,9 @@ void Network::run() {
 	for (std::map<kcpuv_conv_t, Conn*>::iterator it = _map_conn.begin();
 	    it != _map_conn.end(); ++it) {
 		Conn* conn = it->second;
-		if (conn->expired()) {
+		if (conn->expired() == 0) {
 			remove_list.push_back(conn->get_conv());
+			SAFE_DELETE(conn);
 		} else {
 			conn->run(get_tick_ms());
 		}
@@ -201,6 +202,7 @@ int Network::proc_req_conn(const char* buf, uint32_t size, const struct sockaddr
 
 	_map_req_conn[req->n] = conn->get_conv();
 	_map_conn[conn->get_conv()] = conn;
+	conn->alive();
 	return 0;
 
 Exit0:

@@ -8,6 +8,7 @@ public:
 
 	virtual int run(uint64_t tick);
 	virtual void on_recv_udp(const char* buf, ssize_t size, const struct sockaddr* addr);
+	virtual int recv_kcp(char*& buf, uint32_t& size);
 
 	int prepare_req_conn(const sockaddr* addr, uv_udp_t* handle);
 	void req_conn_run();
