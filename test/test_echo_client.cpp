@@ -70,7 +70,7 @@ int main() {
 
 			char buf[1024] = { 0 };
 			strncpy(buf, (const char*)msg.data, msg.size);
-			printf("recv: %s\n", buf);
+			printf("conv: %d recv: %s\n", msg.conv, buf);
 			kcpuv_msg_free(&msg);
 		}
 

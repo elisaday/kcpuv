@@ -69,7 +69,7 @@ int main() {
 
 			char buf[1024] = { 0 };
 			strncpy(buf, (const char*)msg.data, msg.size);
-			printf("recv: %s\n", buf);
+			printf("conv: %d recv: %s\n", msg.conv, buf);
 			strcpy(buf + msg.size, " - reply");
 			kcpuv_send(kcpuv, msg.conv, buf, strlen(buf));
 			kcpuv_msg_free(&msg);

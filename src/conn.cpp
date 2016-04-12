@@ -183,11 +183,13 @@ kcpuv_conv_t Conn::get_conv() {
 }
 
 uint32_t Conn::new_key() {
-	static uint32_t key = 1000;
-	return key++;
+	return rand_uint32();
 }
 
 uint32_t Conn::new_conv() {
-	static uint32_t conv = 1000;
-	return conv++;
+	uint32_t conv;
+	do {
+		conv = rand_uint32();
+	} while (_network->get_conn_by_conv(conv) != NULL);
+	return conv;
 }
