@@ -16,6 +16,8 @@ endif ()
 add_executable(test_echo_client "test_echo_client.cpp")
 add_executable(test_echo_server "test_echo_server.cpp")
 
+add_executable(test_delay_client "test_delay_client.cpp")
+
 if (MSVC)
   if (USING_STATIC_CRT)
     foreach (flag_var
@@ -42,7 +44,11 @@ include_directories(
 if (MSVC)
 	target_link_libraries(test_echo_client kcpuv)
 	target_link_libraries(test_echo_server kcpuv)
+
+  target_link_libraries(test_delay_client kcpuv)
 else ()
 	target_link_libraries(test_echo_client kcpuv pthread)
 	target_link_libraries(test_echo_server kcpuv pthread)
+
+  target_link_libraries(test_delay_client kcpuv pthread)
 endif ()
